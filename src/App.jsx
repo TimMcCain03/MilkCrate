@@ -231,7 +231,7 @@ function App() {
               marginTop: "6vh",
               width: "100%",
               maxWidth: 720,
-              background: "white",
+              background: "gray",
               borderRadius: 8,
               padding: 20,
               boxShadow: "0 8px 30px rgba(0,0,0,0.3)",
