@@ -16,6 +16,7 @@ function App() {
   const [searchInput, setSearchInput] = useState("");
   const [accessToken, setAccessToken] = useState("");
   const [albums, setAlbums] = useState([]);
+  const [status, setStatus] = useState("");
 
   useEffect(() => {
     let authParams = {
@@ -34,13 +35,16 @@ function App() {
       .then((result) => result.json())
       .then((data) => {
         setAccessToken(data.access_token);
+        setStatus("");
       });
   }, []);
 
   async function search() {
     // prevent running before token is available or input is empty
     if (!accessToken) {
-      console.error("search() called before access token was obtained");
+      // show a user-facing status and avoid spamming the console with an error
+      setStatus("Waiting for Spotify token...");
+      console.warn("search() called before access token was obtained");
       return;
     }
 
@@ -95,11 +99,18 @@ function App() {
       <Container>
         <InputGroup>
           <FormControl
-            placeholder="Search For Artist"
+            placeholder={accessToken ? "Search For Artist" : "Waiting for Spotify token..."}
             type="input"
             aria-label="Search for an Artist"
             onKeyDown={(event) => {
               if (event.key === "Enter") {
+                event.preventDefault();
+                // Only trigger search when we have a token and a non-empty input
+                if (!accessToken) {
+                  console.warn("Search blocked: access token not ready");
+                  return;
+                }
+                if (!searchInput || searchInput.trim().length === 0) return;
                 search();
               }
             }}
@@ -121,6 +132,9 @@ function App() {
             Search
           </Button>
         </InputGroup>
+        {status && (
+          <div style={{ color: "#666", marginTop: "8px", fontSize: "14px" }}>{status}</div>
+        )}
       </Container>
 
       <Container>
