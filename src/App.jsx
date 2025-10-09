@@ -70,7 +70,7 @@ function App() {
     };
 
     try {
-      const query = encodeURICompoent(searchInput);
+      const query = encodeURIComponent(searchInput);
 
       // search for both albums and artists in one request
       const  searchResp = await fetch(
@@ -121,7 +121,7 @@ function App() {
       <Container>
         <InputGroup>
           <FormControl
-            placeholder={accessToken ? "Search For Artist" : "Waiting for Spotify token..."}
+            placeholder={accessToken ? "Search For An Artist Or Album" : "Waiting for Spotify token..."}
             type="input"
             aria-label="Search for an Artist"
             onKeyDown={(event) => {
