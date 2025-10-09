@@ -385,14 +385,14 @@ function App() {
                 <div key={entry.id} style={{ display: "flex", gap: 12, padding: 12, borderBottom: "1px solid #eee" }}>
                   <img src={entry.image || ""} alt="" style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 6 }} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700 }}>{entry.name}</div>
-                    <div style={{ color: "#666", fontSize: 13 }}>{(entry.artists || []).join(", ")}</div>
-                    <div style={{ marginTop: 6, fontSize: 13 }}>
+                    <div style={{ fontWeight: 700, color: "black" }}>{entry.name}</div>
+                    <div style={{ color: "black", fontSize: 13 }}>{(entry.artists || []).join(", ")}</div>
+                    <div style={{ marginTop: 6, fontSize: 13, color: "black" }}>
                       <strong>Format:</strong> {entry.format} &nbsp; • &nbsp;
                       <strong>Condition:</strong> {entry.condition}
                     </div>
-                    {entry.purchaseDate && <div style={{ fontSize: 13, color: "#444" }}>Purchased: {entry.purchaseDate}</div>}
-                    {entry.notes && <div style={{ marginTop: 6, fontSize: 13 }}>{entry.notes}</div>}
+                    {entry.purchaseDate && <div style={{ fontSize: 13, color: "black" }}>Purchased: {entry.purchaseDate}</div>}
+                    {entry.notes && <div style={{ marginTop: 6, fontSize: 13, color: "black" }}>{entry.notes}</div>}
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     <Button size="sm" onClick={() => editCollectionEntry(entry)}>Edit</Button>
