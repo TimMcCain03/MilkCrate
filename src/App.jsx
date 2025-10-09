@@ -70,39 +70,52 @@ function App() {
     };
 
     try {
-      // Get Artist
-      const artistResp = await fetch(
-        "https://api.spotify.com/v1/search?q=" +
-          encodeURIComponent(searchInput) +
-          "&type=artist",
+      const query = encodeURICompoent(searchInput);
+
+      // search for both albums and artists in one request
+      const  searchResp = await fetch(
+        `https://api.spotify.com/v1/search?q=${query}&type=album,artist&market=US&limit=50`,
         artistParams
       );
-      const artistData = await artistResp.json();
+      const searchData = await searchResp.json();
 
-      const artist = artistData?.artists?.items?.[0];
-      if (!artist) {
-        console.warn("No artist found for:", searchInput);
+      // albums returned directly by the album search
+      const albumsFromSearch = searchData?.albums?.items || [];
+
+      // if an artist is found, also fetch that artist's albums
+      let albumsFromArtist = [];
+      const artist = searchData?.artists?.items?.[0];
+      if (artist) {
+        const artistID = artist.id;
+        const albumsResp = await fetch(
+          `https://api.spotify.com/v1/artists/${artistID}/albums?include_groups=album&market=US&limit=50`,
+          artistParams
+        );
+        const albumsData = await albumsResp.json();
+        albumsFromArtist = albumsData?.items || [];
+      }
+
+      // Merge and dedupe albums by id (albumsFromSearch may overlap with albumsFromArtist)
+      const merged = [...albumsFromSearch, ...albumsFromArtist];
+      const map = new Map();
+      merged.forEach((a) => {
+        if (a && a.id && !map.has(a.id)) map.set(a.id, a);
+      });
+      const mergedAlbums = Array.from(map.values());
+
+      if (mergedAlbums.length === 0) {
+        console.warn("No albums or artists found for:", searchInput);
         setAlbums([]);
         return;
       }
 
-      const artistID = artist.id;
-
-      // Get Artist Albums
-      const albumsResp = await fetch(
-        "https://api.spotify.com/v1/artists/" +
-          artistID +
-          "/albums?include_groups=album&market=US&limit=50",
-        artistParams
-      );
-      const albumsData = await albumsResp.json();
-      setAlbums(albumsData?.items || []);
+      setAlbums(mergedAlbums);
     } catch (err) {
       console.error("Error while searching Spotify:", err);
       setAlbums([]);
+
     }
   }
-
   return (
     <>
       <Container>
