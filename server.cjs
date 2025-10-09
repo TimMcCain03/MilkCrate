@@ -46,9 +46,26 @@ function exchangeToken(clientId, clientSecret) {
 }
 
 const server = http.createServer(async (req, res) => {
+  // Debug endpoint to check whether server env vars are present (does NOT return secrets)
+  if (req.method === 'GET' && req.url === '/api/token-config') {
+    const clientId = process.env.SPOTIFY_CLIENT_ID || process.env.VITE_CLIENT_ID;
+    const clientSecret = process.env.SPOTIFY_CLIENT_SECRET || process.env.VITE_CLIENT_SECRET;
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(
+      JSON.stringify({
+        clientIdPresent: !!clientId,
+        clientSecretPresent: !!clientSecret,
+        clientIdLength: clientId ? clientId.length : 0,
+        clientSecretLength: clientSecret ? clientSecret.length : 0,
+      })
+    );
+    return;
+  }
+
   if (req.method === 'GET' && req.url === '/api/token') {
-    const clientId = process.env.VITE_CLIENT_ID || process.env.SPOTIFY_CLIENT_ID;
-    const clientSecret = process.env.VITE_CLIENT_SECRET || process.env.SPOTIFY_CLIENT_SECRET;
+    // prefer SPOTIFY_* env vars so secrets aren't accidentally exposed via Vite's VITE_* vars
+    const clientId = process.env.SPOTIFY_CLIENT_ID || process.env.VITE_CLIENT_ID;
+    const clientSecret = process.env.SPOTIFY_CLIENT_SECRET || process.env.VITE_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
