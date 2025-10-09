@@ -31,11 +31,20 @@ function App() {
         clientSecret,
     };
 
-    fetch("https://accounts.spotify.com/api/token", authParams)
-      .then((result) => result.json())
+    fetch('/api/token')
+      .then((res) => res.json())
       .then((data) => {
-        setAccessToken(data.access_token);
-        setStatus("");
+        if (data && data.access_token) {
+          setAccessToken(data.access_token);
+          setStatus('');
+        } else {
+          console.error('Token endpoint returned unexpected response', data);
+          setStatus('Unable to obtain Spotify token');
+        }
+      })
+      .catch((err) => {
+        console.error('Error fetching token from server:', err);
+        setStatus('Unable to obtain Spotify token');
       });
   }, []);
 

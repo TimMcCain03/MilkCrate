@@ -19,7 +19,8 @@
     "vite": "^5.0.8",
     "serve": "^14.2.0",
     "serve-static": "^1.15.0",
-    "finalhandler": "^1.2.0"
+    "finalhandler": "^1.2.0",
+    "dotenv": "^16.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",
