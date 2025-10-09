@@ -27,6 +27,9 @@ function App() {
     notes: "",
   });
 
+  // collection viewer state
+  const [showCollectionView, setShowCollectionView] = useState(false);
+
   useEffect(() => {
     // Request token from server endpoint
     fetch("/api/token")
@@ -66,7 +69,6 @@ function App() {
   }, [collection]);
 
   async function search() {
-    // prevent running before token is available or input is empty
     if (!accessToken) {
       setStatus("Waiting for Spotify token...");
       console.warn("search() called before access token was obtained");
@@ -88,17 +90,14 @@ function App() {
     try {
       const query = encodeURIComponent(searchInput);
 
-      // search for both albums and artists in one request
       const searchResp = await fetch(
         `https://api.spotify.com/v1/search?q=${query}&type=album,artist&market=US&limit=50`,
         params
       );
       const searchData = await searchResp.json();
 
-      // albums returned directly by the album search
       const albumsFromSearch = searchData?.albums?.items || [];
 
-      // if an artist is found, also fetch that artist's albums
       let albumsFromArtist = [];
       const artist = searchData?.artists?.items?.[0];
       if (artist) {
@@ -111,7 +110,6 @@ function App() {
         albumsFromArtist = albumsData?.items || [];
       }
 
-      // Merge and dedupe albums by id (albumsFromSearch may overlap with albumsFromArtist)
       const merged = [...albumsFromSearch, ...albumsFromArtist];
       const map = new Map();
       merged.forEach((a) => {
@@ -132,7 +130,6 @@ function App() {
     }
   }
 
-  // open the full-page dropdown form to add album to collection
   function openAddToCollection(album) {
     setSelectedAlbum(album);
     setFormValues({
@@ -166,7 +163,6 @@ function App() {
       notes: formValues.notes,
       addedAt: new Date().toISOString(),
     };
-    // avoid duplicates: replace existing entry with same id
     setCollection((prev) => {
       const filtered = prev.filter((i) => i.id !== entry.id);
       return [entry, ...filtered];
@@ -176,6 +172,40 @@ function App() {
 
   function updateFormField(field, value) {
     setFormValues((f) => ({ ...f, [field]: value }));
+  }
+
+  // collection viewer helpers
+  function openCollectionView() {
+    setShowCollectionView(true);
+  }
+
+  function closeCollectionView() {
+    setShowCollectionView(false);
+  }
+
+  function removeFromCollection(id) {
+    if (!window.confirm("Remove this album from your collection?")) return;
+    setCollection((prev) => prev.filter((i) => i.id !== id));
+  }
+
+  function editCollectionEntry(entry) {
+    // populate the add/edit form and open it
+    setSelectedAlbum({
+      id: entry.id,
+      name: entry.name,
+      artists: (entry.artists || []).map((n) => ({ name: n })),
+      images: [{ url: entry.image }],
+      external_urls: { spotify: entry.spotifyUrl },
+    });
+    setFormValues({
+      owned: !!entry.owned,
+      format: entry.format || "Vinyl",
+      condition: entry.condition || "Good",
+      purchaseDate: entry.purchaseDate || "",
+      notes: entry.notes || "",
+    });
+    setShowCollectionForm(true);
+    setShowCollectionView(false);
   }
 
   return (
@@ -312,6 +342,72 @@ function App() {
         </div>
       )}
 
+      {/* Collection viewer overlay */}
+      {showCollectionView && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.6)",
+            zIndex: 1050,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "flex-start",
+          }}
+          onClick={closeCollectionView}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              marginTop: "6vh",
+              width: "100%",
+              maxWidth: 900,
+              background: "white",
+              borderRadius: 8,
+              padding: 20,
+              boxShadow: "0 8px 30px rgba(0,0,0,0.3)",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ margin: 0 }}>My Collection ({collection.length})</h3>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Button variant="light" onClick={closeCollectionView}>Close</Button>
+              </div>
+            </div>
+
+            <hr />
+
+            <div style={{ maxHeight: "70vh", overflow: "auto" }}>
+              {collection.length === 0 && (
+                <div style={{ padding: 12, color: "#666" }}>Your collection is empty.</div>
+              )}
+              {collection.map((entry) => (
+                <div key={entry.id} style={{ display: "flex", gap: 12, padding: 12, borderBottom: "1px solid #eee" }}>
+                  <img src={entry.image || ""} alt="" style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 6 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700 }}>{entry.name}</div>
+                    <div style={{ color: "#666", fontSize: 13 }}>{(entry.artists || []).join(", ")}</div>
+                    <div style={{ marginTop: 6, fontSize: 13 }}>
+                      <strong>Format:</strong> {entry.format} &nbsp; • &nbsp;
+                      <strong>Condition:</strong> {entry.condition}
+                    </div>
+                    {entry.purchaseDate && <div style={{ fontSize: 13, color: "#444" }}>Purchased: {entry.purchaseDate}</div>}
+                    {entry.notes && <div style={{ marginTop: 6, fontSize: 13 }}>{entry.notes}</div>}
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <Button size="sm" onClick={() => editCollectionEntry(entry)}>Edit</Button>
+                    <Button size="sm" variant="danger" onClick={() => removeFromCollection(entry.id)}>Remove</Button>
+                    <a href={entry.spotifyUrl} target="_blank" rel="noreferrer">
+                      <Button size="sm" variant="outline-secondary">Open</Button>
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       <Container>
         <InputGroup>
           <FormControl
@@ -321,7 +417,6 @@ function App() {
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();
-                // Only trigger search when we have a token and a non-empty input
                 if (!accessToken) {
                   console.warn("Search blocked: access token not ready");
                   return;
@@ -352,8 +447,9 @@ function App() {
           <div style={{ color: "#666", marginTop: "8px", fontSize: "14px" }}>{status}</div>
         )}
         {/* small collection summary */}
-        <div style={{ marginTop: 8, color: "#333", fontSize: 14 }}>
-          My collection: {collection.length} album{collection.length === 1 ? "" : "s"}
+        <div style={{ marginTop: 8, color: "#333", fontSize: 14, display: "flex", gap: 12, alignItems: "center" }}>
+          <div>My collection: {collection.length} album{collection.length === 1 ? "" : "s"}</div>
+          <Button size="sm" onClick={openCollectionView}>View collection</Button>
         </div>
       </Container>
 
