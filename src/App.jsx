@@ -25,6 +25,7 @@ function App() {
     notes: "",
   });
   const [showCollectionView, setShowCollectionView] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false); // New state
 
   // Fetch token and handle errors
   const fetchToken = useCallback(async () => {
@@ -142,6 +143,7 @@ function App() {
 
     const mergedAlbums = await fetchAlbums(searchInput, accessToken);
     setAlbums(mergedAlbums);
+    setShowSearchResults(true); // Show results
   }
 
   // Collection form functions
@@ -232,6 +234,13 @@ function App() {
     },
     [setShowCollectionForm, setShowCollectionView, setSelectedAlbum, setFormValues]
   );
+
+  // Function to close search results
+  const closeSearchResults = () => {
+    setShowSearchResults(false);
+    setAlbums([]); // Clear the albums
+    setSearchInput(""); // Clear the search input
+  };
 
   // Styles
   const overlayStyle = {
@@ -485,86 +494,93 @@ function App() {
         </div>
       </Container>
 
-      <Container>
-        <Row
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            flexWrap: "wrap",
-            justifyContent: "space-around",
-            alignContent: "center",
-          }}
-        >
-          {albums.map((album) => {
-            const inCollection = collection.find((c) => c.id === album.id);
-            return (
-              <Card
-                key={album.id}
-                style={{
-                  backgroundColor: "white",
-                  margin: "10px",
-                  borderRadius: "5px",
-                  marginBottom: "30px",
-                }}
-              >
-                <Card.Img
-                  width={200}
-                  src={album.images?.[0]?.url || ""}
+      {/* Conditionally render search results */}
+      {showSearchResults && (
+        <Container>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h2>Search Results</h2>
+            <Button onClick={closeSearchResults}>Close Results</Button>
+          </div>
+          <Row
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              flexWrap: "wrap",
+              justifyContent: "space-around",
+              alignContent: "center",
+            }}
+          >
+            {albums.map((album) => {
+              const inCollection = collection.find((c) => c.id === album.id);
+              return (
+                <Card
+                  key={album.id}
                   style={{
-                    borderRadius: "4%",
+                    backgroundColor: "white",
+                    margin: "10px",
+                    borderRadius: "5px",
+                    marginBottom: "30px",
                   }}
-                />
-                <Card.Body>
-                  <Card.Title
+                >
+                  <Card.Img
+                    width={200}
+                    src={album.images?.[0]?.url || ""}
                     style={{
-                      whiteSpace: "wrap",
-                      fontWeight: "bold",
-                      maxWidth: "200px",
-                      fontSize: "18px",
-                      marginTop: "10px",
-                      color: "black",
+                      borderRadius: "4%",
                     }}
-                  >
-                    {album.name}
-                  </Card.Title>
-                  <Card.Text
-                    style={{
-                      color: "black",
-                    }}
-                  >
-                    Release Date: <br /> {album.release_date}
-                  </Card.Text>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <Button
-                      onClick={() => openAddToCollection(album)}
+                  />
+                  <Card.Body>
+                    <Card.Title
                       style={{
-                        backgroundColor: inCollection ? "#2f855a" : "black",
-                        color: "white",
+                        whiteSpace: "wrap",
                         fontWeight: "bold",
-                        fontSize: "15px",
-                        borderRadius: "5px",
-                        padding: "10px",
+                        maxWidth: "200px",
+                        fontSize: "18px",
+                        marginTop: "10px",
+                        color: "black",
                       }}
                     >
-                      {inCollection ? "In collection" : "Add to collection"}
-                    </Button>
-                    <Button
-                      href={album.external_urls?.spotify}
-                      variant="outline-secondary"
+                      {album.name}
+                    </Card.Title>
+                    <Card.Text
                       style={{
-                        borderRadius: "5px",
-                        padding: "10px",
+                        color: "black",
                       }}
                     >
-                      Open on Spotify
-                    </Button>
-                  </div>
-                </Card.Body>
-              </Card>
-            );
-          })}
-        </Row>
-      </Container>
+                      Release Date: <br /> {album.release_date}
+                    </Card.Text>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <Button
+                        onClick={() => openAddToCollection(album)}
+                        style={{
+                          backgroundColor: inCollection ? "#2f855a" : "black",
+                          color: "white",
+                          fontWeight: "bold",
+                          fontSize: "15px",
+                          borderRadius: "5px",
+                          padding: "10px",
+                        }}
+                      >
+                        {inCollection ? "In collection" : "Add to collection"}
+                      </Button>
+                      <Button
+                        href={album.external_urls?.spotify}
+                        variant="outline-secondary"
+                        style={{
+                          borderRadius: "5px",
+                          padding: "10px",
+                        }}
+                      >
+                        Open on Spotify
+                      </Button>
+                    </div>
+                  </Card.Body>
+                </Card>
+              );
+            })}
+          </Row>
+        </Container>
+      )}
     </>
   );
 }
