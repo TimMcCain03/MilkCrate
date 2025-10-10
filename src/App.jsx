@@ -445,7 +445,7 @@ function App() {
         </div>
       )}
 
-      <Container style={{ position: 'fixed', top: 0, left: 0, right: 0, backgroundColor: '#fff', zIndex: 1100, padding: '12px 16px', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}>
+      <Container style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1100, padding: '12px 16px',}}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'space-between', maxWidth: 1280, margin: '0 auto' }}>
           <InputGroup style={{ flex: 1, maxWidth: 640 }}>
             <FormControl
@@ -486,9 +486,6 @@ function App() {
             <div style={{ color: "#333", fontSize: 14 }}>
               My collection: {collection.length} album{collection.length === 1 ? "" : "s"}
             </div>
-            <Button size="sm" onClick={openCollectionView}>
-              View collection
-            </Button>
           </div>
         </div>
         {status && (
@@ -557,6 +554,12 @@ function App() {
           </Row>
         </Container>
       )}
+
+      <Container>
+        <Button size="sm" onClick={openCollectionView} style={{position: 'fixed', bottom: 20,}}>
+          View collection
+        </Button>
+      </Container>
     </>
   );
 }
