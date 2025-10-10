@@ -7,15 +7,13 @@ import {
   Card,
   Row,
 } from "react-bootstrap";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 function App() {
   const [searchInput, setSearchInput] = useState("");
   const [accessToken, setAccessToken] = useState("");
   const [albums, setAlbums] = useState([]);
   const [status, setStatus] = useState("");
-
-  // collection + UI state
   const [collection, setCollection] = useState([]);
   const [showCollectionForm, setShowCollectionForm] = useState(false);
   const [selectedAlbum, setSelectedAlbum] = useState(null);
@@ -26,48 +24,111 @@ function App() {
     purchaseDate: "",
     notes: "",
   });
-
-  // collection viewer state
   const [showCollectionView, setShowCollectionView] = useState(false);
 
-  useEffect(() => {
-    // Request token from server endpoint
-    fetch("/api/token")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && data.access_token) {
-          setAccessToken(data.access_token);
-          setStatus("");
-        } else {
-          console.error("Token endpoint returned unexpected response", data);
-          setStatus("Unable to obtain Spotify token");
-        }
-      })
-      .catch((err) => {
-        console.error("Error fetching token from server:", err);
+  // Fetch token and handle errors
+  const fetchToken = useCallback(async () => {
+    try {
+      const res = await fetch("/api/token");
+      const data = await res.json();
+      if (data?.access_token) {
+        setAccessToken(data.access_token);
+        setStatus("");
+      } else {
+        console.error("Token endpoint error:", data);
         setStatus("Unable to obtain Spotify token");
-      });
+      }
+    } catch (err) {
+      console.error("Error fetching token:", err);
+      setStatus("Unable to obtain Spotify token");
+    }
   }, []);
 
-  // load saved collection from localStorage
   useEffect(() => {
+    fetchToken();
+  }, [fetchToken]);
+
+  // Load/Save collection using useCallback
+  const loadCollection = useCallback(() => {
     try {
       const raw = localStorage.getItem("myAlbumCollection");
       if (raw) setCollection(JSON.parse(raw));
     } catch (e) {
-      console.warn("Failed to load collection from localStorage", e);
+      console.warn("Load collection failed", e);
     }
   }, []);
 
-  // persist collection
-  useEffect(() => {
-    try {
-      localStorage.setItem("myAlbumCollection", JSON.stringify(collection));
-    } catch (e) {
-      console.warn("Failed to save collection to localStorage", e);
-    }
-  }, [collection]);
+  const saveCollection = useCallback(
+    (newCollection) => {
+      try {
+        localStorage.setItem("myAlbumCollection", JSON.stringify(newCollection));
+      } catch (e) {
+        console.warn("Save collection failed", e);
+      }
+    },
+    []
+  );
 
+  useEffect(() => {
+    loadCollection();
+  }, [loadCollection]);
+
+  useEffect(() => {
+    saveCollection(collection);
+  }, [collection, saveCollection]);
+
+  // Consolidate album fetching
+  const fetchAlbums = useCallback(
+    async (query, accessToken) => {
+      const params = {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      };
+
+      try {
+        const searchResp = await fetch(
+          `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=album,artist&market=US&limit=50`,
+          params
+        );
+        const searchData = await searchResp.json();
+
+        const albumsFromSearch = searchData?.albums?.items || [];
+        const artist = searchData?.artists?.items?.[0];
+        let albumsFromArtist = [];
+
+        if (artist) {
+          const albumsResp = await fetch(
+            `https://api.spotify.com/v1/artists/${artist.id}/albums?include_groups=album&market=US&limit=50`,
+            params
+          );
+          const albumsData = await albumsResp.json();
+          albumsFromArtist = albumsData?.items || [];
+        }
+
+        const mergedAlbums = Array.from(
+          new Map(
+            [...albumsFromSearch, ...albumsFromArtist].map((album) => [album.id, album])
+          ).values()
+        );
+
+        if (mergedAlbums.length === 0) {
+          console.warn("No albums/artists found:", query);
+          return [];
+        }
+
+        return mergedAlbums;
+      } catch (err) {
+        console.error("Spotify search error:", err);
+        return [];
+      }
+    },
+    []
+  );
+
+  // Search function
   async function search() {
     if (!accessToken) {
       setStatus("Waiting for Spotify token...");
@@ -79,164 +140,136 @@ function App() {
       return;
     }
 
-    const params = {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + accessToken,
-      },
-    };
+    const mergedAlbums = await fetchAlbums(searchInput, accessToken);
+    setAlbums(mergedAlbums);
+  }
 
-    try {
-      const query = encodeURIComponent(searchInput);
-
-      const searchResp = await fetch(
-        `https://api.spotify.com/v1/search?q=${query}&type=album,artist&market=US&limit=50`,
-        params
-      );
-      const searchData = await searchResp.json();
-
-      const albumsFromSearch = searchData?.albums?.items || [];
-
-      let albumsFromArtist = [];
-      const artist = searchData?.artists?.items?.[0];
-      if (artist) {
-        const artistID = artist.id;
-        const albumsResp = await fetch(
-          `https://api.spotify.com/v1/artists/${artistID}/albums?include_groups=album&market=US&limit=50`,
-          params
-        );
-        const albumsData = await albumsResp.json();
-        albumsFromArtist = albumsData?.items || [];
-      }
-
-      const merged = [...albumsFromSearch, ...albumsFromArtist];
-      const map = new Map();
-      merged.forEach((a) => {
-        if (a && a.id && !map.has(a.id)) map.set(a.id, a);
+  // Collection form functions
+  const openAddToCollection = useCallback(
+    (album) => {
+      setSelectedAlbum(album);
+      setFormValues({
+        owned: true,
+        format: "Vinyl",
+        condition: "Good",
+        purchaseDate: "",
+        notes: "",
       });
-      const mergedAlbums = Array.from(map.values());
+      setShowCollectionForm(true);
+    },
+    []
+  );
 
-      if (mergedAlbums.length === 0) {
-        console.warn("No albums or artists found for:", searchInput);
-        setAlbums([]);
-        return;
-      }
-
-      setAlbums(mergedAlbums);
-    } catch (err) {
-      console.error("Error while searching Spotify:", err);
-      setAlbums([]);
-    }
-  }
-
-  function openAddToCollection(album) {
-    setSelectedAlbum(album);
-    setFormValues({
-      owned: true,
-      format: "Vinyl",
-      condition: "Good",
-      purchaseDate: "",
-      notes: "",
-    });
-    setShowCollectionForm(true);
-  }
-
-  function closeCollectionForm() {
+  const closeCollectionForm = useCallback(() => {
     setShowCollectionForm(false);
     setSelectedAlbum(null);
-  }
+  }, []);
 
-  function saveToCollection(e) {
-    e.preventDefault();
-    if (!selectedAlbum) return;
-    const entry = {
-      id: selectedAlbum.id,
-      name: selectedAlbum.name,
-      artists: selectedAlbum.artists?.map((a) => a.name) || [],
-      image: selectedAlbum.images?.[0]?.url || "",
-      spotifyUrl: selectedAlbum.external_urls?.spotify || "",
-      owned: formValues.owned,
-      format: formValues.format,
-      condition: formValues.condition,
-      purchaseDate: formValues.purchaseDate,
-      notes: formValues.notes,
-      addedAt: new Date().toISOString(),
-    };
-    setCollection((prev) => {
-      const filtered = prev.filter((i) => i.id !== entry.id);
-      return [entry, ...filtered];
-    });
-    closeCollectionForm();
-  }
+  const saveToCollection = useCallback(
+    (e) => {
+      e.preventDefault();
+      if (!selectedAlbum) return;
 
-  function updateFormField(field, value) {
+      const entry = {
+        id: selectedAlbum.id,
+        name: selectedAlbum.name,
+        artists: selectedAlbum.artists?.map((a) => a.name) || [],
+        image: selectedAlbum.images?.[0]?.url || "",
+        spotifyUrl: selectedAlbum.external_urls?.spotify || "",
+        owned: formValues.owned,
+        format: formValues.format,
+        condition: formValues.condition,
+        purchaseDate: formValues.purchaseDate,
+        notes: formValues.notes,
+        addedAt: new Date().toISOString(),
+      };
+
+      setCollection((prev) => {
+        const filtered = prev.filter((i) => i.id !== entry.id);
+        return [entry, ...filtered];
+      });
+      closeCollectionForm();
+    },
+    [closeCollectionForm, formValues, selectedAlbum]
+  );
+
+  const updateFormField = useCallback((field, value) => {
     setFormValues((f) => ({ ...f, [field]: value }));
-  }
+  }, []);
 
-  // collection viewer helpers
-  function openCollectionView() {
+  // Collection viewer functions
+  const openCollectionView = useCallback(() => {
     setShowCollectionView(true);
-  }
+  }, []);
 
-  function closeCollectionView() {
+  const closeCollectionView = useCallback(() => {
     setShowCollectionView(false);
-  }
+  }, []);
 
-  function removeFromCollection(id) {
+  const removeFromCollection = useCallback((id) => {
     if (!window.confirm("Remove this album from your collection?")) return;
     setCollection((prev) => prev.filter((i) => i.id !== id));
-  }
+  }, []);
 
-  function editCollectionEntry(entry) {
-    // populate the add/edit form and open it
-    setSelectedAlbum({
-      id: entry.id,
-      name: entry.name,
-      artists: (entry.artists || []).map((n) => ({ name: n })),
-      images: [{ url: entry.image }],
-      external_urls: { spotify: entry.spotifyUrl },
-    });
-    setFormValues({
-      owned: !!entry.owned,
-      format: entry.format || "Vinyl",
-      condition: entry.condition || "Good",
-      purchaseDate: entry.purchaseDate || "",
-      notes: entry.notes || "",
-    });
-    setShowCollectionForm(true);
-    setShowCollectionView(false);
-  }
+  const editCollectionEntry = useCallback(
+    (entry) => {
+      setSelectedAlbum({
+        id: entry.id,
+        name: entry.name,
+        artists: (entry.artists || []).map((n) => ({ name: n })),
+        images: [{ url: entry.image }],
+        external_urls: { spotify: entry.spotifyUrl },
+      });
+      setFormValues({
+        owned: !!entry.owned,
+        format: entry.format || "Vinyl",
+        condition: entry.condition || "Good",
+        purchaseDate: entry.purchaseDate || "",
+        notes: entry.notes || "",
+      });
+      setShowCollectionForm(true);
+      setShowCollectionView(false);
+    },
+    [setShowCollectionForm, setShowCollectionView, setSelectedAlbum, setFormValues]
+  );
+
+  // Styles
+  const overlayStyle = {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.6)",
+    zIndex: 1050,
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "flex-start",
+  };
+
+  const formStyle = {
+    marginTop: "6vh",
+    width: "100%",
+    maxWidth: 720,
+    background: "gray",
+    borderRadius: 8,
+    padding: 20,
+    boxShadow: "0 8px 30px rgba(0,0,0,0.3)",
+  };
+
+  const collectionViewerStyle = {
+    marginTop: "6vh",
+    width: "100%",
+    maxWidth: 900,
+    background: "white",
+    borderRadius: 8,
+    padding: 20,
+    boxShadow: "0 8px 30px rgba(0,0,0,0.3)",
+  };
 
   return (
     <>
       {/* Full-page dropdown / overlay form */}
       {showCollectionForm && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.6)",
-            zIndex: 1050,
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "flex-start",
-          }}
-          onClick={closeCollectionForm}
-        >
-          <form
-            onClick={(e) => e.stopPropagation()}
-            onSubmit={saveToCollection}
-            style={{
-              marginTop: "6vh",
-              width: "100%",
-              maxWidth: 720,
-              background: "gray",
-              borderRadius: 8,
-              padding: 20,
-              boxShadow: "0 8px 30px rgba(0,0,0,0.3)",
-            }}
-          >
+        <div style={overlayStyle} onClick={closeCollectionForm}>
+          <form style={formStyle} onClick={(e) => e.stopPropagation()} onSubmit={saveToCollection}>
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
               <img
                 src={selectedAlbum?.images?.[0]?.url || ""}
@@ -344,34 +377,14 @@ function App() {
 
       {/* Collection viewer overlay */}
       {showCollectionView && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.6)",
-            zIndex: 1050,
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "flex-start",
-          }}
-          onClick={closeCollectionView}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              marginTop: "6vh",
-              width: "100%",
-              maxWidth: 900,
-              background: "white",
-              borderRadius: 8,
-              padding: 20,
-              boxShadow: "0 8px 30px rgba(0,0,0,0.3)",
-            }}
-          >
+        <div style={overlayStyle} onClick={closeCollectionView}>
+          <div style={collectionViewerStyle} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h3 style={{ margin: 0 }}>My Collection ({collection.length})</h3>
               <div style={{ display: "flex", gap: 8 }}>
-                <Button variant="light" onClick={closeCollectionView}>Close</Button>
+                <Button variant="light" onClick={closeCollectionView}>
+                  Close
+                </Button>
               </div>
             </div>
 
@@ -382,8 +395,15 @@ function App() {
                 <div style={{ padding: 12, color: "#666" }}>Your collection is empty.</div>
               )}
               {collection.map((entry) => (
-                <div key={entry.id} style={{ display: "flex", gap: 12, padding: 12, borderBottom: "1px solid #eee" }}>
-                  <img src={entry.image || ""} alt="" style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 6 }} />
+                <div
+                  key={entry.id}
+                  style={{ display: "flex", gap: 12, padding: 12, borderBottom: "1px solid #eee" }}
+                >
+                  <img
+                    src={entry.image || ""}
+                    alt=""
+                    style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 6 }}
+                  />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 700, color: "black" }}>{entry.name}</div>
                     <div style={{ color: "black", fontSize: 13 }}>{(entry.artists || []).join(", ")}</div>
@@ -391,14 +411,22 @@ function App() {
                       <strong>Format:</strong> {entry.format} &nbsp; • &nbsp;
                       <strong>Condition:</strong> {entry.condition}
                     </div>
-                    {entry.purchaseDate && <div style={{ fontSize: 13, color: "black" }}>Purchased: {entry.purchaseDate}</div>}
+                    {entry.purchaseDate && (
+                      <div style={{ fontSize: 13, color: "black" }}>Purchased: {entry.purchaseDate}</div>
+                    )}
                     {entry.notes && <div style={{ marginTop: 6, fontSize: 13, color: "black" }}>{entry.notes}</div>}
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    <Button size="sm" onClick={() => editCollectionEntry(entry)}>Edit</Button>
-                    <Button size="sm" variant="danger" onClick={() => removeFromCollection(entry.id)}>Remove</Button>
+                    <Button size="sm" onClick={() => editCollectionEntry(entry)}>
+                      Edit
+                    </Button>
+                    <Button size="sm" variant="danger" onClick={() => removeFromCollection(entry.id)}>
+                      Remove
+                    </Button>
                     <a href={entry.spotifyUrl} target="_blank" rel="noreferrer">
-                      <Button size="sm" variant="outline-secondary">Open</Button>
+                      <Button size="sm" variant="outline-secondary">
+                        Open
+                      </Button>
                     </a>
                   </div>
                 </div>
@@ -448,8 +476,12 @@ function App() {
         )}
         {/* small collection summary */}
         <div style={{ marginTop: 8, color: "#333", fontSize: 14, display: "flex", gap: 12, alignItems: "center" }}>
-          <div>My collection: {collection.length} album{collection.length === 1 ? "" : "s"}</div>
-          <Button size="sm" onClick={openCollectionView}>View collection</Button>
+          <div>
+            My collection: {collection.length} album{collection.length === 1 ? "" : "s"}
+          </div>
+          <Button size="sm" onClick={openCollectionView}>
+            View collection
+          </Button>
         </div>
       </Container>
 
