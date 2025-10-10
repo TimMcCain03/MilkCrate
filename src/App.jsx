@@ -445,54 +445,58 @@ function App() {
         </div>
       )}
 
-      <Container>
-        <InputGroup>
-          <FormControl
-            placeholder={accessToken ? "Search For An Artist Or Album" : "Waiting for Spotify token..."}
-            type="input"
-            aria-label="Search for an Artist"
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                if (!accessToken) {
-                  console.warn("Search blocked: access token not ready");
-                  return;
+      <Container style={{ position: 'fixed', top: 0, left: 0, right: 0, backgroundColor: '#fff', zIndex: 1100, padding: '12px 16px', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'space-between', maxWidth: 1280, margin: '0 auto' }}>
+          <InputGroup style={{ flex: 1, maxWidth: 640 }}>
+            <FormControl
+              placeholder={accessToken ? "Search For An Artist Or Album" : "Waiting for Spotify token..."}
+              type="input"
+              aria-label="Search for an Artist"
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  if (!accessToken) {
+                    console.warn("Search blocked: access token not ready");
+                    return;
+                  }
+                  if (!searchInput || searchInput.trim().length === 0) return;
+                  search();
                 }
-                if (!searchInput || searchInput.trim().length === 0) return;
-                search();
-              }
-            }}
-            onChange={(event) => setSearchInput(event.target.value)}
-            style={{
-              width: "300px",
-              height: "35px",
-              borderWidth: "0px",
-              borderStyle: "solid",
-              borderRadius: "5px",
-              marginRight: "10px",
-              paddingLeft: "10px",
-            }}
-          />
-          <Button
-            onClick={search}
-            disabled={!accessToken || !searchInput || searchInput.trim().length === 0}
-          >
-            Search
-          </Button>
-        </InputGroup>
-        {status && (
-          <div style={{ color: "#666", marginTop: "8px", fontSize: "14px" }}>{status}</div>
-        )}
-        {/* small collection summary */}
-        <div style={{ marginTop: 8, color: "#333", fontSize: 14, display: "flex", gap: 12, alignItems: "center" }}>
-          <div>
-            My collection: {collection.length} album{collection.length === 1 ? "" : "s"}
+              }}
+              onChange={(event) => setSearchInput(event.target.value)}
+              style={{
+                width: "100%",
+                height: "35px",
+                borderWidth: "0px",
+                borderStyle: "solid",
+                borderRadius: "5px",
+                marginRight: "10px",
+                paddingLeft: "10px",
+              }}
+            />
+            <Button
+              onClick={search}
+              disabled={!accessToken || !searchInput || searchInput.trim().length === 0}
+            >
+              Search
+            </Button>
+          </InputGroup>
+
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <div style={{ color: "#333", fontSize: 14 }}>
+              My collection: {collection.length} album{collection.length === 1 ? "" : "s"}
+            </div>
+            <Button size="sm" onClick={openCollectionView}>
+              View collection
+            </Button>
           </div>
-          <Button size="sm" onClick={openCollectionView}>
-            View collection
-          </Button>
         </div>
+        {status && (
+          <div style={{ color: "#666", marginTop: "8px", fontSize: "14px", textAlign: 'center' }}>{status}</div>
+        )}
       </Container>
+
+      <div style={{ paddingTop: 96 }}></div> {/* Spacer for fixed header */}
 
       {/* Conditionally render search results */}
       {showSearchResults && (
@@ -516,12 +520,6 @@ function App() {
                 <Card
                   key={album.id}
                   className="album-card"
-                  style={{
-                    backgroundColor: "white",
-                    margin: "10px",
-                    borderRadius: "6px",
-                    marginBottom: "30px",
-                  }}
                 >
                   <div className="album-art-wrapper">
                     <img

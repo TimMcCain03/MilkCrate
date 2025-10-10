@@ -55,6 +55,11 @@
   width: 220px;
   overflow: hidden;
   border-radius: 6px;
+  background: transparent;   
+  box-shadow: none;          
+  border: none;              
+  margin: 10px;
+  margin-bottom: 30px;
 }
 
 .album-art-wrapper {
@@ -78,6 +83,7 @@
 /* subtle scale on hover */
 .album-art-wrapper:hover .album-art {
   transform: scale(1.04);
+  color: gray;
 }
 
 /* overlay that contains the hidden info */
