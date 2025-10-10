@@ -275,55 +275,6 @@ function App() {
 
   return (
     <>
-      <Container style={{ position: "sticky", top: 0, backgroundColor: "white", zIndex: 100 }}>
-        <InputGroup>
-          <FormControl
-            placeholder={accessToken ? "Search For An Artist Or Album" : "Waiting for Spotify token..."}
-            type="input"
-            aria-label="Search for an Artist"
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                if (!accessToken) {
-                  console.warn("Search blocked: access token not ready");
-                  return;
-                }
-                if (!searchInput || searchInput.trim().length === 0) return;
-                search();
-              }
-            }}
-            onChange={(event) => setSearchInput(event.target.value)}
-            style={{
-              width: "300px",
-              height: "35px",
-              borderWidth: "0px",
-              borderStyle: "solid",
-              borderRadius: "5px",
-              marginRight: "10px",
-              paddingLeft: "10px",
-            }}
-          />
-          <Button
-            onClick={search}
-            disabled={!accessToken || !searchInput || searchInput.trim().length === 0}
-          >
-            Search
-          </Button>
-        </InputGroup>
-        {status && (
-          <div style={{ color: "#666", marginTop: "8px", fontSize: "14px" }}>{status}</div>
-        )}
-        {/* small collection summary */}
-        <div style={{ marginTop: 8, color: "#333", fontSize: 14, display: "flex", gap: 12, alignItems: "center" }}>
-          <div>
-            My collection: {collection.length} album{collection.length === 1 ? "" : "s"}
-          </div>
-          <Button size="sm" onClick={openCollectionView}>
-            View collection
-          </Button>
-        </div>
-      </Container>
-
       {/* Full-page dropdown / overlay form */}
       {showCollectionForm && (
         <div style={overlayStyle} onClick={closeCollectionForm}>
@@ -494,6 +445,55 @@ function App() {
         </div>
       )}
 
+      <Container>
+        <InputGroup>
+          <FormControl
+            placeholder={accessToken ? "Search For An Artist Or Album" : "Waiting for Spotify token..."}
+            type="input"
+            aria-label="Search for an Artist"
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                if (!accessToken) {
+                  console.warn("Search blocked: access token not ready");
+                  return;
+                }
+                if (!searchInput || searchInput.trim().length === 0) return;
+                search();
+              }
+            }}
+            onChange={(event) => setSearchInput(event.target.value)}
+            style={{
+              width: "300px",
+              height: "35px",
+              borderWidth: "0px",
+              borderStyle: "solid",
+              borderRadius: "5px",
+              marginRight: "10px",
+              paddingLeft: "10px",
+            }}
+          />
+          <Button
+            onClick={search}
+            disabled={!accessToken || !searchInput || searchInput.trim().length === 0}
+          >
+            Search
+          </Button>
+        </InputGroup>
+        {status && (
+          <div style={{ color: "#666", marginTop: "8px", fontSize: "14px" }}>{status}</div>
+        )}
+        {/* small collection summary */}
+        <div style={{ marginTop: 8, color: "#333", fontSize: 14, display: "flex", gap: 12, alignItems: "center" }}>
+          <div>
+            My collection: {collection.length} album{collection.length === 1 ? "" : "s"}
+          </div>
+          <Button size="sm" onClick={openCollectionView}>
+            View collection
+          </Button>
+        </div>
+      </Container>
+
       {/* Conditionally render search results */}
       {showSearchResults && (
         <Container>
@@ -515,66 +515,44 @@ function App() {
               return (
                 <Card
                   key={album.id}
+                  className="album-card"
                   style={{
                     backgroundColor: "white",
                     margin: "10px",
-                    borderRadius: "5px",
+                    borderRadius: "6px",
                     marginBottom: "30px",
                   }}
                 >
-                  <Card.Img
-                    width={200}
-                    src={album.images?.[0]?.url || ""}
-                    style={{
-                      borderRadius: "4%",
-                    }}
-                  />
-                  <Card.Body>
-                    <Card.Title
-                      style={{
-                        whiteSpace: "wrap",
-                        fontWeight: "bold",
-                        maxWidth: "200px",
-                        fontSize: "18px",
-                        marginTop: "10px",
-                        color: "black",
-                      }}
-                    >
-                      {album.name}
-                    </Card.Title>
-                    <Card.Text
-                      style={{
-                        color: "black",
-                      }}
-                    >
-                      Release Date: <br /> {album.release_date}
-                    </Card.Text>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <Button
-                        onClick={() => openAddToCollection(album)}
-                        style={{
-                          backgroundColor: inCollection ? "#2f855a" : "black",
-                          color: "white",
-                          fontWeight: "bold",
-                          fontSize: "15px",
-                          borderRadius: "5px",
-                          padding: "10px",
-                        }}
-                      >
-                        {inCollection ? "In collection" : "Add to collection"}
-                      </Button>
-                      <Button
-                        href={album.external_urls?.spotify}
-                        variant="outline-secondary"
-                        style={{
-                          borderRadius: "5px",
-                          padding: "10px",
-                        }}
-                      >
-                        Open on Spotify
-                      </Button>
+                  <div className="album-art-wrapper">
+                    <img
+                      src={album.images?.[0]?.url || ""}
+                      alt={album.name}
+                      className="album-art"
+                    />
+                    <div className="album-info-overlay">
+                      <div className="overlay-content">
+                        <div className="overlay-title">{album.name}</div>
+                        <div className="overlay-artists">{(album.artists || []).map((a) => a.name).join(", ")}</div>
+                        <div className="overlay-release">Release: {album.release_date}</div>
+                        <div className="overlay-actions">
+                          <Button
+                            size="sm"
+                            variant={inCollection ? "success" : "dark"}
+                            onClick={() => openAddToCollection(album)}
+                          >
+                            {inCollection ? "In collection" : "Add"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline-secondary"
+                            href={album.external_urls?.spotify}
+                          >
+                            Open
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                  </Card.Body>
+                  </div>
                 </Card>
               );
             })}
