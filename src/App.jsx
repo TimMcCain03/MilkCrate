@@ -275,6 +275,55 @@ function App() {
 
   return (
     <>
+      <Container style={{ position: "sticky", top: 0, backgroundColor: "white", zIndex: 100 }}>
+        <InputGroup>
+          <FormControl
+            placeholder={accessToken ? "Search For An Artist Or Album" : "Waiting for Spotify token..."}
+            type="input"
+            aria-label="Search for an Artist"
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                if (!accessToken) {
+                  console.warn("Search blocked: access token not ready");
+                  return;
+                }
+                if (!searchInput || searchInput.trim().length === 0) return;
+                search();
+              }
+            }}
+            onChange={(event) => setSearchInput(event.target.value)}
+            style={{
+              width: "300px",
+              height: "35px",
+              borderWidth: "0px",
+              borderStyle: "solid",
+              borderRadius: "5px",
+              marginRight: "10px",
+              paddingLeft: "10px",
+            }}
+          />
+          <Button
+            onClick={search}
+            disabled={!accessToken || !searchInput || searchInput.trim().length === 0}
+          >
+            Search
+          </Button>
+        </InputGroup>
+        {status && (
+          <div style={{ color: "#666", marginTop: "8px", fontSize: "14px" }}>{status}</div>
+        )}
+        {/* small collection summary */}
+        <div style={{ marginTop: 8, color: "#333", fontSize: 14, display: "flex", gap: 12, alignItems: "center" }}>
+          <div>
+            My collection: {collection.length} album{collection.length === 1 ? "" : "s"}
+          </div>
+          <Button size="sm" onClick={openCollectionView}>
+            View collection
+          </Button>
+        </div>
+      </Container>
+
       {/* Full-page dropdown / overlay form */}
       {showCollectionForm && (
         <div style={overlayStyle} onClick={closeCollectionForm}>
@@ -444,55 +493,6 @@ function App() {
           </div>
         </div>
       )}
-
-      <Container>
-        <InputGroup>
-          <FormControl
-            placeholder={accessToken ? "Search For An Artist Or Album" : "Waiting for Spotify token..."}
-            type="input"
-            aria-label="Search for an Artist"
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                if (!accessToken) {
-                  console.warn("Search blocked: access token not ready");
-                  return;
-                }
-                if (!searchInput || searchInput.trim().length === 0) return;
-                search();
-              }
-            }}
-            onChange={(event) => setSearchInput(event.target.value)}
-            style={{
-              width: "300px",
-              height: "35px",
-              borderWidth: "0px",
-              borderStyle: "solid",
-              borderRadius: "5px",
-              marginRight: "10px",
-              paddingLeft: "10px",
-            }}
-          />
-          <Button
-            onClick={search}
-            disabled={!accessToken || !searchInput || searchInput.trim().length === 0}
-          >
-            Search
-          </Button>
-        </InputGroup>
-        {status && (
-          <div style={{ color: "#666", marginTop: "8px", fontSize: "14px" }}>{status}</div>
-        )}
-        {/* small collection summary */}
-        <div style={{ marginTop: 8, color: "#333", fontSize: 14, display: "flex", gap: 12, alignItems: "center" }}>
-          <div>
-            My collection: {collection.length} album{collection.length === 1 ? "" : "s"}
-          </div>
-          <Button size="sm" onClick={openCollectionView}>
-            View collection
-          </Button>
-        </div>
-      </Container>
 
       {/* Conditionally render search results */}
       {showSearchResults && (
