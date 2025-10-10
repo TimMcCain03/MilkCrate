@@ -247,10 +247,16 @@ function App() {
     position: "fixed",
     inset: 0,
     background: "rgba(0,0,0,0.6)",
-    zIndex: 1050,
+    zIndex: 1200,
     display: "flex",
     justifyContent: "center",
     alignItems: "flex-start",
+  };
+
+  const collectionOverlayStyle = {
+    ... overlayStyle,
+    alignItems: "center",
+    justifyContent: "center",
   };
 
   const formStyle = {
@@ -266,11 +272,12 @@ function App() {
   const collectionViewerStyle = {
     marginTop: "6vh",
     width: "100%",
-    maxWidth: 900,
+    maxWidth: 980,
     background: "white",
     borderRadius: 8,
     padding: 20,
     boxShadow: "0 8px 30px rgba(0,0,0,0.3)",
+    position: "relative",
   };
 
   return (
@@ -386,60 +393,49 @@ function App() {
 
       {/* Collection viewer overlay */}
       {showCollectionView && (
-        <div style={overlayStyle} onClick={closeCollectionView}>
+        <div style={collectionOverlayStyle} onClick={closeCollectionView}>
           <div style={collectionViewerStyle} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8 }}>
               <h3 style={{ margin: 0 }}>My Collection ({collection.length})</h3>
-              <div style={{ display: "flex", gap: 8 }}>
-                <Button variant="light" onClick={closeCollectionView}>
-                  Close
-                </Button>
-              </div>
+              <div style={{ display: "flex", gap: 8 }} />
             </div>
 
             <hr />
 
-            <div style={{ maxHeight: "70vh", overflow: "auto" }}>
+            {/* Collection grid: 4 columns, album info hidden behind art (same hover overlay used in search results) */}
+            <div style={{ maxHeight: "70vh", overflow: "auto", display: "flex", justifyContent: "center" }}>
               {collection.length === 0 && (
                 <div style={{ padding: 12, color: "#666" }}>Your collection is empty.</div>
               )}
-              {collection.map((entry) => (
-                <div
-                  key={entry.id}
-                  style={{ display: "flex", gap: 12, padding: 12, borderBottom: "1px solid #eee" }}
-                >
-                  <img
-                    src={entry.image || ""}
-                    alt=""
-                    style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 6 }}
-                  />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, color: "black" }}>{entry.name}</div>
-                    <div style={{ color: "black", fontSize: 13 }}>{(entry.artists || []).join(", ")}</div>
-                    <div style={{ marginTop: 6, fontSize: 13, color: "black" }}>
-                      <strong>Format:</strong> {entry.format} &nbsp; • &nbsp;
-                      <strong>Condition:</strong> {entry.condition}
-                    </div>
-                    {entry.purchaseDate && (
-                      <div style={{ fontSize: 13, color: "black" }}>Purchased: {entry.purchaseDate}</div>
-                    )}
-                    {entry.notes && <div style={{ marginTop: 6, fontSize: 13, color: "black" }}>{entry.notes}</div>}
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    <Button size="sm" onClick={() => editCollectionEntry(entry)}>
-                      Edit
-                    </Button>
-                    <Button size="sm" variant="danger" onClick={() => removeFromCollection(entry.id)}>
-                      Remove
-                    </Button>
-                    <a href={entry.spotifyUrl} target="_blank" rel="noreferrer">
-                      <Button size="sm" variant="outline-secondary">
-                        Open
-                      </Button>
-                    </a>
-                  </div>
+              {collection.length > 0 && (
+                <div className="collection-grid" style={{ padding: 8 }}>
+                  {collection.map((entry) => (
+                    <Card key={entry.id} className="album-card">
+                      <div className="album-art-wrapper" title={entry.name}>
+                        <img src={entry.image || ""} alt={entry.name} className="album-art" />
+                        <div className="album-info-overlay">
+                          <div className="overlay-content">
+                            <div className="overlay-title">{entry.name}</div>
+                            <div className="overlay-artists">{(entry.artists || []).join(", ")}</div>
+                            <div className="overlay-release">Format: {entry.format} • {entry.condition}</div>
+                            {entry.purchaseDate && <div className="overlay-release">Purchased: {entry.purchaseDate}</div>}
+                            {entry.notes && <div style={{ marginTop: 6, fontSize: 12 }}>{entry.notes}</div>}
+                            <div className="overlay-actions" style={{ marginTop: 8 }}>
+                              <Button size="sm" onClick={() => editCollectionEntry(entry)}>Edit</Button>
+                              <Button size="sm" variant="danger" onClick={() => removeFromCollection(entry.id)}>Remove</Button>
+                              <Button size="sm" variant="outline-secondary" href={entry.spotifyUrl} target="_blank" rel="noreferrer">Open</Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
                 </div>
-              ))}
+              )}
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "center", marginTop: 12 }}>
+              <Button variant="light" onClick={closeCollectionView}>Close</Button>
             </div>
           </div>
         </div>
