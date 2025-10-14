@@ -45,11 +45,7 @@
   padding: 2em;
 }
 
-.collection-scroll {
-  max-height: 70vh;
-  overflow: auto;
-  padding: 8px;
-}
+
 
 .read-the-docs {
   color: #888;
@@ -64,12 +60,16 @@
   box-shadow: none;          
   border: none;              
   margin: 0;
+  display: block;
+  flex: none;
 }
 
 .album-art-wrapper {
   position: relative;
   width: 220px;
   height: 220px;
+  min-width: 220px;
+  min-height: 220px;
   display: block;
   border-radius: 6px;
   overflow: hidden;
@@ -139,12 +139,22 @@
 .collection-grid {
   display: grid;
   grid-template-columns: repeat(4, 220px);
+  grid-auto-rows: auto;
   gap: 16px;
   justify-content: center;
+  justify-items: center;
   width: max-content;
   margin: 0 auto;
+  width: auto;
 }
 
+.collection-scroll {
+  max-height: 70vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px;
+  display: block;
+}
 /* small screens: reduce columns */
 @media (max-width: 1100px) {
   .collection-grid { grid-template-columns: repeat(3, 220px); }

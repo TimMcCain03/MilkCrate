@@ -403,35 +403,35 @@ function App() {
             <hr />
 
             {/* Collection grid: 4 columns, album info hidden behind art (same hover overlay used in search results) */}
-            <div className="collection-scroll"style={{ maxHeight: "70vh", overflow: "auto", display: "flex", justifyContent: "center" }}>
-              {collection.length === 0 && (
-                <div style={{ padding: 12, color: "#666" }}>Your collection is empty.</div>
-              )}
-              {collection.length > 0 && (
-                <div className="collection-grid" style={{ padding: 8 }}>
-                  {collection.map((entry) => (
-                    <Card key={entry.id} className="album-card">
-                      <div className="album-art-wrapper" title={entry.name}>
-                        <img src={entry.image || ""} alt={entry.name} className="album-art" />
-                        <div className="album-info-overlay">
-                          <div className="overlay-content">
-                            <div className="overlay-title">{entry.name}</div>
-                            <div className="overlay-artists">{(entry.artists || []).join(", ")}</div>
-                            <div className="overlay-release">Format: {entry.format} • {entry.condition}</div>
-                            {entry.purchaseDate && <div className="overlay-release">Purchased: {entry.purchaseDate}</div>}
-                            {entry.notes && <div style={{ marginTop: 6, fontSize: 12 }}>{entry.notes}</div>}
-                            <div className="overlay-actions" style={{ marginTop: 8 }}>
-                              <Button size="sm" onClick={() => editCollectionEntry(entry)}>Edit</Button>
-                              <Button size="sm" variant="danger" onClick={() => removeFromCollection(entry.id)}>Remove</Button>
-                              <Button size="sm" variant="outline-secondary" href={entry.spotifyUrl} target="_blank" rel="noreferrer">Open</Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
+            <div className="collection-scroll">
+               {collection.length === 0 && (
+                 <div style={{ padding: 12, color: "#666" }}>Your collection is empty.</div>
+               )}
+               {collection.length > 0 && (
+                 <div className="collection-grid" style={{ padding: 8 }}>
+                   {collection.map((entry) => (
+                     <Card key={entry.id} className="album-card">
+                       <div className="album-art-wrapper" title={entry.name}>
+                         <img src={entry.image || ""} alt={entry.name} className="album-art" />
+                         <div className="album-info-overlay">
+                           <div className="overlay-content">
+                             <div className="overlay-title">{entry.name}</div>
+                             <div className="overlay-artists">{(entry.artists || []).join(", ")}</div>
+                             <div className="overlay-release">Format: {entry.format} • {entry.condition}</div>
+                             {entry.purchaseDate && <div className="overlay-release">Purchased: {entry.purchaseDate}</div>}
+                             {entry.notes && <div style={{ marginTop: 6, fontSize: 12 }}>{entry.notes}</div>}
+                             <div className="overlay-actions" style={{ marginTop: 8 }}>
+                               <Button size="sm" onClick={() => editCollectionEntry(entry)}>Edit</Button>
+                               <Button size="sm" variant="danger" onClick={() => removeFromCollection(entry.id)}>Remove</Button>
+                               <Button size="sm" variant="outline-secondary" href={entry.spotifyUrl} target="_blank" rel="noreferrer">Open</Button>
+                             </div>
+                           </div>
+                         </div>
+                       </div>
+                     </Card>
+                   ))}
+                 </div>
+               )}
             </div>
 
             <div style={{ display: "flex", justifyContent: "center", marginTop: 12 }}>
