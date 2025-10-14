@@ -40,10 +40,15 @@
 .read-the-docs {
   color: #888;
 }
-/* ...existing code... */
 
 .card {
   padding: 2em;
+}
+
+.collection-scroll {
+  max-height: 70vh;
+  overflow: auto;
+  padding: 8px;
 }
 
 .read-the-docs {
@@ -136,6 +141,8 @@
   grid-template-columns: repeat(4, 220px);
   gap: 16px;
   justify-content: center;
+  width: max-content;
+  margin: 0 auto;
 }
 
 /* small screens: reduce columns */

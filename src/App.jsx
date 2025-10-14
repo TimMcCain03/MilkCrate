@@ -403,7 +403,7 @@ function App() {
             <hr />
 
             {/* Collection grid: 4 columns, album info hidden behind art (same hover overlay used in search results) */}
-            <div style={{ maxHeight: "70vh", overflow: "auto", display: "flex", justifyContent: "center" }}>
+            <div className="collection-scroll"style={{ maxHeight: "70vh", overflow: "auto", display: "flex", justifyContent: "center" }}>
               {collection.length === 0 && (
                 <div style={{ padding: 12, color: "#666" }}>Your collection is empty.</div>
               )}
